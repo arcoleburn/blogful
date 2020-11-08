@@ -1,7 +1,9 @@
+/* eslint-disable eqeqeq */
 'use strict';
 
 require('dotenv').config();
 const express = require('express');
+const jsonParser = express.json();
 const morgan = require('morgan');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -37,6 +39,32 @@ app.get('/articles/:article_id', (req, res, next) => {
       res.json(article);
     })
     .catch(next);
+});
+
+app.post('/articles', jsonParser, (req, res, next) => {
+  const { title, content, style } = req.body;
+  const newArticle = { title, content, style };
+
+  for (const [key, value] of Object.entries(newArticle)) {
+    if (value == null) {
+      //using == beacuse it doesnt need to STRICTLY equal null, just a null value (like undefined)
+      return res.status(400).json({
+        error: { message: `Missing ${key} in request body` },
+      });
+    }
+  }
+  ArticlesService.insertArticle(req.app.get('db'), newArticle)
+    .then((article) => {
+      res
+        .status(201)
+        .location(`/articles/${article.id}`)
+        .json(article);
+    })
+    .catch(next);
+});
+
+app.delete('/articles/:articleId', (req, res, next) => {
+  return res.status(204).end();
 });
 
 app.get('/', (req, res) => {
